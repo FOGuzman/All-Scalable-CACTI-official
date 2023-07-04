@@ -1,4 +1,5 @@
-src/clips.rar
+src/clips.zip
 src/clips/
 src/dataset/
 src/training_results/
+*.pyc

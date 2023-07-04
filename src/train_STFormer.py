@@ -15,8 +15,8 @@ parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 
 parser.add_argument('--training_dir', default="./dataset/train/", type=str)
 parser.add_argument('--validation_dir', default="./dataset/val/", type=str)
-parser.add_argument('--mask_path', default="./masks/mask256_8.mat", type=str)
-parser.add_argument('--frames', default=8, type=int)
+parser.add_argument('--mask_path', default="./masks/mask512_16.mat", type=str)
+parser.add_argument('--frames', default=16, type=int)
 parser.add_argument('--batchSize', default=1, type=int, help='Batch size for training')
 parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'], help='Device choice (cpu or cuda)')
 parser.add_argument('--Epochs', default=100, type=int, help='Number of epochs')
@@ -38,7 +38,7 @@ args.Phi, args.Phi_s = build_mask(args)
 
 lr = args.learning_rate
 
-model = STFormer(color_channels=1,units=1,dim=16,frames=args.frames)
+model = STFormer(color_channels=1,units=4,dim=64,frames=args.frames)
 model = model.to(args.device)
 loss = torch.nn.MSELoss()
 loss = loss.to(args.device)
