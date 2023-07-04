@@ -28,3 +28,39 @@ def A(x,Phi):
 def At(y,Phi):
     x = y*Phi
     return x
+
+
+
+
+
+
+
+
+
+def compute_ssim_psnr(original, reconstructed):
+    # Calculate mean over spatial dimensions
+    original_mean = original.mean(dim=(2, 3), keepdim=True)
+    reconstructed_mean = reconstructed.mean(dim=(2, 3), keepdim=True)
+
+    # Calculate variance and covariance
+    original_var = ((original - original_mean) ** 2).mean(dim=(2, 3), keepdim=True)
+    reconstructed_var = ((reconstructed - reconstructed_mean) ** 2).mean(dim=(2, 3), keepdim=True)
+    covariance = ((original - original_mean) * (reconstructed - reconstructed_mean)).mean(dim=(2, 3), keepdim=True)
+
+    # SSIM constants
+    c1 = 0.01 ** 2
+    c2 = 0.03 ** 2
+
+    # Calculate SSIM
+    numerator = (2 * original_mean * reconstructed_mean + c1) * (2 * covariance + c2)
+    denominator = (original_mean ** 2 + reconstructed_mean ** 2 + c1) * (original_var + reconstructed_var + c2)
+    ssim_score = numerator / denominator
+
+    # Average SSIM over channels and batches
+    ssim_score = ssim_score.mean(dim=1, keepdim=True).mean(dim=0, keepdim=True)
+
+    # Compute PSNR
+    mse = torch.mean((original - reconstructed) ** 2)
+    psnr = 10 * torch.log10(1 / mse)
+
+    return ssim_score.item(), psnr.item()
