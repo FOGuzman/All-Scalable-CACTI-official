@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 
 parser.add_argument('--videos_dir', default="./clips/", type=str)
 parser.add_argument('--augmented_data_dir', default="./dataset/", type=str)
-parser.add_argument('--frames', default=16, type=int)
+parser.add_argument('--frames', default=8, type=int)
 parser.add_argument('--frame_skip', default=8, type=int)
 parser.add_argument('--resolution', default=[512,512], type=eval, help='Dataset resolution')
 parser.add_argument('--crop_size', default=[2048,2048], type=eval, help='Dataset resolution []')
