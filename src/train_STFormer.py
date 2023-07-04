@@ -38,7 +38,7 @@ args.Phi, args.Phi_s = build_mask(args)
 
 lr = args.learning_rate
 
-model = STFormer(color_channels=1,units=4,dim=64,frames=args.frames)
+model = STFormer(color_channels=1,units=2,dim=16,frames=args.frames)
 model = model.to(args.device)
 loss = torch.nn.MSELoss()
 loss = loss.to(args.device)
@@ -67,10 +67,10 @@ for epoch in range(args.Epochs):
 
             optimizer.zero_grad()
 
-            model_out = model(meas,args)
-            
+            out = model(meas,args)
+            out = out[0]
 
-            loss_val = loss(model_out, gt)
+            loss_val = loss(out, gt)
             epoch_loss += loss.item()
 
             loss.backward()
