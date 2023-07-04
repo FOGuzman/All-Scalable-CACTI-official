@@ -6,7 +6,7 @@ from timm.models.layers import trunc_normal_
 from functools import reduce
 from operator import mul
 from einops import rearrange
-from utils import A, At
+from functions.utils import A, At
 
 class GRFFNet(nn.Module):
     def __init__(self, dim):
