@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 
 parser.add_argument('--training_dir', default="./dataset/train/", type=str)
 parser.add_argument('--validation_dir', default="./dataset/val/", type=str)
-parser.add_argument('--mask_path', default="./masks/mask512_8.mat", type=str)
+parser.add_argument('--mask_path', default="./masks/mask128_8.mat", type=str)
 parser.add_argument('--frames', default=8, type=int)
 parser.add_argument('--batchSize', default=1, type=int, help='Batch size for training')
 parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'], help='Device choice (cpu or cuda)')
@@ -38,7 +38,7 @@ args.Phi, args.Phi_s = build_mask(args)
 
 lr = args.learning_rate
 
-model = STFormer(color_channels=1,units=2,dim=16,frames=args.frames)
+model = STFormer(color_channels=1,units=1,dim=16,frames=args.frames)
 model = model.to(args.device)
 loss = torch.nn.MSELoss()
 loss = loss.to(args.device)
@@ -71,7 +71,7 @@ for epoch in range(args.Epochs):
             out = out[0]
 
             loss_val = loss(out, gt)
-            epoch_loss += loss.item()
+            epoch_loss += loss_val.item()
 
             loss.backward()
             optimizer.step()
