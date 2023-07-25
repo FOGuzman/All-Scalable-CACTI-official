@@ -399,14 +399,14 @@ class STFormer(nn.Module):
         x = x_bayer.unsqueeze(1)
         return x
 
-    def forward(self, y, args):
+    def forward(self, y, Phi,Phi_s):
         out_list = []
         if self.color_channels==3:
-            x = self.bayer_init(y,args.Phi,args.Phi_s)
+            x = self.bayer_init(y,Phi,Phi_s)
         else:
-            x = At(y,args.Phi)
-            yb = A(x,args.Phi)
-            x = x + At(torch.div(y-yb,args.Phi_s),args.Phi)
+            x = At(y,Phi)
+            yb = A(x,Phi)
+            x = x + At(torch.div(y-yb,Phi_s),Phi)
             x = x.unsqueeze(1)
       
         out = self.token_gen(x)

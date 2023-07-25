@@ -10,22 +10,22 @@ from functions.model import STFormer
 from torch.utils.tensorboard import SummaryWriter
 from functions.loader import Imgdataset
 from functions.prepare_mask import build_mask
-from functions.utils import A, At
+from functions.utils import A, At, expand_tensor
 from functions.utils import compute_ssim_psnr
 
 parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 
 parser.add_argument('--training_dir', default="./dataset/train/", type=str)
 parser.add_argument('--validation_dir', default="./dataset/val/", type=str)
-parser.add_argument('--mask_path', default="./masks/mask128_8.mat", type=str)
-parser.add_argument('--frames', default=8, type=int)
-parser.add_argument('--batchSize', default=1, type=int, help='Batch size for training')
+parser.add_argument('--mask_path', default="./masks/mask128_16.mat", type=str)
+parser.add_argument('--frames', default=16, type=int)
+parser.add_argument('--batchSize', default=2, type=int, help='Batch size for training')
 parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'], help='Device choice (cpu or cuda)')
 parser.add_argument('--Epochs', default=100, type=int, help='Number of epochs')
 parser.add_argument('--checkpoint', default=None, type=str)
 parser.add_argument('--experimentName', default="exp_exmaple", type=str)
 parser.add_argument('--learning_rate', default=0.0001, type=float)
-parser.add_argument('--saveModelEach', default=100, type=int, help='Number of epochs')
+parser.add_argument('--saveModelEach', default=5, type=int, help='Number of epochs')
 
 args = parser.parse_args()
 args.device = torch.device(args.device)
@@ -42,12 +42,12 @@ writer = SummaryWriter(log_dir = tb_path)
 
 
 
-args.Phi, args.Phi_s = build_mask(args)
-
+args.Phi, args.Phi_s = build_mask(args,args.batchSize)
+args.Phi_test, args.Phi_s_test = build_mask(args,1)
 
 lr = args.learning_rate
 
-model = STFormer(color_channels=1,units=1,dim=16,frames=args.frames)
+model = STFormer(color_channels=1,units=2,dim=32,frames=args.frames)
 model = model.to(args.device)
 loss = torch.nn.MSELoss()
 loss = loss.to(args.device)
@@ -58,7 +58,7 @@ optimizer = torch.optim.AdamW([{'params': model.parameters()}], lr=lr)
 train_dataset = Imgdataset(args.training_dir)
 test_dataset = Imgdataset(args.validation_dir)
 train_data_loader = DataLoader(dataset=train_dataset, batch_size=args.batchSize, shuffle=True)
-test_data_loader = DataLoader(dataset=test_dataset, batch_size=args.batchSize, shuffle=True)
+test_data_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
 iter_num = len(train_data_loader)
 for epoch in range(args.Epochs):
@@ -76,7 +76,7 @@ for epoch in range(args.Epochs):
 
         optimizer.zero_grad()
 
-        out = model(meas,args)
+        out = model(meas,args.Phi,args.Phi_s)
         out = out[0]
 
         loss_val = loss(out, gt)
@@ -122,20 +122,29 @@ for epoch in range(args.Epochs):
         with torch.no_grad():
             gt = data.to(args.device)
 
-            meas = A(gt,args.Phi)
+            meas = A(gt,args.Phi_test)
 
             optimizer.zero_grad()
 
-            out = model(meas,args)
+            out = model(meas,args.Phi_test,args.Phi_s_test)
             out = out[0]
 
             ssim_val, psnr_val = compute_ssim_psnr(gt, out)
 
             ssim_vec.append(ssim_val)
             psnr_vec.append(psnr_val)
-    
+        
+            
+    vid_gt = expand_tensor(gt)
+    vid_re = expand_tensor(out)
+    vid_mk = expand_tensor(args.Phi_test)
+    tensor_im = torch.cat((vid_gt,vid_re,vid_mk),dim=0)
     mean_ssim = sum(ssim_vec)/len(ssim_vec)
     mean_psnr = sum(psnr_vec)/len(psnr_vec)
+    writer.add_scalar("PSNR",mean_psnr,epoch)
+    writer.add_scalar("SSIM",mean_ssim,epoch)
+    writer.add_image("Val recon",tensor_im,epoch,dataformats='HW')
     print(f"Validation results: mean SSIM: {mean_ssim:.4f} | mean PSNR: {mean_psnr:.2f} dB.")
     
                
+writer.close()

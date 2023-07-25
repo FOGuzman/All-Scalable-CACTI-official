@@ -31,7 +31,20 @@ def At(y,Phi):
 
 
 
-
+def expand_tensor(x):
+    if x.dim() == 4:
+        x= torch.squeeze(x)
+    
+    x = x.permute(1,2,0)
+    h,w,ch = x.shape 
+    
+    for k in range(ch):
+        if k == 0:
+            out = x[:,:,k]
+        else:
+          out = torch.cat((out,x[:,:,k]),dim=1)
+    
+    return(out)    
 
 
 

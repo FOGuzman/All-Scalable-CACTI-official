@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 
 parser.add_argument('--videos_dir', default="./clips/", type=str)
 parser.add_argument('--augmented_data_dir', default="./dataset/", type=str)
-parser.add_argument('--frames', default=8, type=int)
+parser.add_argument('--frames', default=16, type=int)
 parser.add_argument('--frame_skip', default=8, type=int)
 parser.add_argument('--resolution', default=[128,128], type=eval, help='Dataset resolution')
 parser.add_argument('--crop_size', default=[2048,2048], type=eval, help='Dataset resolution []')
@@ -20,8 +20,8 @@ parser.add_argument('--randomRotation', default=True, action="store_true",help='
 parser.add_argument('--batchSize', default=5, type=int, help='Batch size for training')
 parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'], help='Device choice (cpu or cuda)')
 
-parser.add_argument('--trainData', default=20, type=int)
-parser.add_argument('--validationData', default=20, type=int)
+parser.add_argument('--trainData', default=5000, type=int)
+parser.add_argument('--validationData', default=100, type=int)
 parser.add_argument('--FileFormat', default="torch", type=str)
 args = parser.parse_args()
 
