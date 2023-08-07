@@ -15,6 +15,7 @@ from functions.utils import compute_ssim_psnr
 
 parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 
+parser.add_argument('--videos_dir', default="./clips/", type=str)
 parser.add_argument('--training_dir', default="./dataset/train/", type=str)
 parser.add_argument('--validation_dir', default="./dataset/val/", type=str)
 parser.add_argument('--mask_path', default="./masks/mask128_8.mat", type=str)

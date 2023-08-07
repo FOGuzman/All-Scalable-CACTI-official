@@ -1,5 +1,5 @@
 import torch
-
+import matplotlib.pyplot as plt
     
 def load_checkpoints(model,pretrained_dict,strict=False):
     # pretrained_dict = torch.load(checkpoints)
@@ -77,3 +77,16 @@ def compute_ssim_psnr(original, reconstructed):
     psnr = 10 * torch.log10(1 / mse)
 
     return ssim_score.item(), psnr.item()
+
+
+
+def plot(x):
+    plt.imshow(x, cmap='gray')
+    plt.show(block=False)
+
+
+def implay(x):
+    for idx in range(x.shape[2]):
+        plt.imshow(x[:,:,idx], cmap='gray')
+        plt.show(block=False)
+        plt.pause(0.1)

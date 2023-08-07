@@ -3,3 +3,8 @@ src/clips/
 src/dataset/
 src/training_results/
 *.pyc
+src/checkpoints/
+src/dataset_mat/
+
+src/masks/xinyuan_mask.mat
+src/masks/mask_spix4_nucmas(512,512,8).mat
