@@ -5,8 +5,8 @@ import einops
 import numpy as np
 
 
-def build_mask(args,batch_size):
-    data = scio.loadmat(args.mask_path)
+def build_mask(args,mask_path,batch_size):
+    data = scio.loadmat(mask_path)
     mask = data['mask']   
     mask_s = np.sum(mask,2)
     mask_s[mask_s==0] = 1

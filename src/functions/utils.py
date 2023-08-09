@@ -1,6 +1,8 @@
 import torch
 import matplotlib.pyplot as plt
-    
+import numpy as np
+
+   
 def load_checkpoints(model,pretrained_dict,strict=False):
     # pretrained_dict = torch.load(checkpoints)
     if strict is True:
@@ -83,10 +85,70 @@ def compute_ssim_psnr(original, reconstructed):
 def plot(x):
     plt.imshow(x, cmap='gray')
     plt.show(block=False)
+    plt.pause(0.1)
 
 
 def implay(x):
+    image = None
     for idx in range(x.shape[2]):
-        plt.imshow(x[:,:,idx], cmap='gray')
+        if image is None:
+             image = plt.imshow(x[:,:,idx], cmap='gray')
+        else:
+             image.set_data(x[:,:,idx])
         plt.show(block=False)
         plt.pause(0.1)
+
+
+def dismantleMeas(xin,order,args):
+    meas_batch = torch.zeros((args.spix**2,1,args.resolution[0]//args.spix,args.resolution[1]//args.spix),device=args.device)
+    for kx in range(args.spix**2):
+        (x,y) = np.where(order==kx)
+        meas_batch[kx] = xin[:,:,int(x):args.resolution[0]:args.spix,int(y):args.resolution[1]:args.spix]
+    meas_batch2 = []
+    meas_batch2.append(meas_batch[:,:,0:256,0:256])
+    meas_batch2.append(meas_batch[:,:,0:256,256:512])   
+    meas_batch2.append(meas_batch[:,:,256:512,0:256]) 
+    meas_batch2.append(meas_batch[:,:,256:512,256:512])
+    return meas_batch2 
+
+
+def assemblyMeas(demul_tensor,order,kernels,args):
+    TM_tensor11 = torch.zeros((args.resolution[0]//2,args.resolution[1]//2,args.spix**2*args.frames))
+    cont = 0
+    for kx in range(len(demul_tensor[0])):
+        (x,y) = np.where(order==kx)
+        for ts in range(args.frames):
+                span = np.kron(demul_tensor[0][kx][ts],kernels[:,:,kx])
+                TM_tensor11[:,:,cont] = torch.from_numpy(span)
+                cont += 1
+
+    TM_tensor12 = torch.zeros((args.resolution[0]//2,args.resolution[1]//2,args.spix**2*args.frames))
+    cont = 0
+    for kx in range(len(demul_tensor[1])):
+        (x,y) = np.where(order==kx)
+        for ts in range(args.frames):
+                span = np.kron(demul_tensor[1][kx][ts],kernels[:,:,kx])
+                TM_tensor12[:,:,cont] = torch.from_numpy(span)
+                cont += 1
+
+    TM_tensor21 = torch.zeros((args.resolution[0]//2,args.resolution[1]//2,args.spix**2*args.frames))
+    cont = 0
+    for kx in range(len(demul_tensor[2])):
+        (x,y) = np.where(order==kx)
+        for ts in range(args.frames):
+                span = np.kron(demul_tensor[2][kx][ts],kernels[:,:,kx])
+                TM_tensor21[:,:,cont] = torch.from_numpy(span)
+                cont += 1   
+
+    TM_tensor22 = torch.zeros((args.resolution[0]//2,args.resolution[1]//2,args.spix**2*args.frames))
+    cont = 0
+    for kx in range(len(demul_tensor[3])):
+        (x,y) = np.where(order==kx)
+        for ts in range(args.frames):
+                span = np.kron(demul_tensor[3][kx][ts],kernels[:,:,kx])
+                TM_tensor22[:,:,cont] = torch.from_numpy(span)
+                cont += 1                       
+
+
+    Full_TM = torch.cat((torch.cat((TM_tensor11,TM_tensor12),dim=1),torch.cat((TM_tensor21,TM_tensor22),dim=1)),dim=0)
+    return Full_TM

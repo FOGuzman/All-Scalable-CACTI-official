@@ -18,10 +18,16 @@ class VideoFramesDataset(Dataset):
         self.color_mode = args.color_mode
         self.resolution = args.resolution
         self.crop_size = args.crop_size
+        self.spix = args.spix
         self.randomFlip = args.randomFlip
         self.randomRotation = args.randomRotation
+        self.FrameStart = args.FrameStart
         self.frame_skip = args.frame_skip
         self.device = args.device
+        self.idx  = 0
+        self.cropflag = 0
+        self.x = 0
+        self.y = 0
         
         if args.color_mode == "gray":
             self.grayscale_transforms = transforms.Compose([
@@ -39,81 +45,65 @@ class VideoFramesDataset(Dataset):
             #transforms.ToTensor(),
         ])
 
-        if video_dir[-4:] == ".mp4":
-            cap = cv2.VideoCapture(self.video_paths)
-            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            self.frame_count_list.append(frame_count - frames + 1)
-            cap.release()  
-        else:
-            for video_path in self.video_paths:
-                cap = cv2.VideoCapture(video_path)
-                frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                self.frame_count_list.append(frame_count - frames + 1)
-                cap.release()    
+
+        cap = cv2.VideoCapture(self.video_paths)
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.frame_count_list.append(frame_count)
+        cap.release()    
 
     def __len__(self):
         return sum(self.frame_count_list)
-
+    
     def __getitem__(self, idx):
         if idx >= len(self):
             raise IndexError("Index out of range.")
-
-        video_idx = 0
-        frame_idx = idx
-
-        for i, frame_count in enumerate(self.frame_count_list):
-            if frame_idx < frame_count:
-                video_idx = i
-                break
-            else:
-                frame_idx -= frame_count
-
-        if self.video_paths[-4:] == ".mp4":
-            video_path = self.video_paths
-        else:
-            video_path = self.video_paths[video_idx]
+        
+        video_path = self.video_paths
         
 
 
         cap = cv2.VideoCapture(video_path)
         vid_total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         init_rand_limit = np.arange(vid_total_frames,
-                                    vid_total_frames-self.n_frames*self.frame_skip,step=-self.frame_skip)-1
+                                    vid_total_frames-self.n_frames*self.frame_skip*(self.spix**2),step=-self.frame_skip)-1
         
-        frame_idx = random.randint(0, init_rand_limit[-1])
+        if self.FrameStart>init_rand_limit[-1]:
+            frame_idx = random.randint(0, init_rand_limit[-1])
+        else:
+            frame_idx = self.FrameStart
         
-        frame_idx_list = np.arange(0,self.n_frames*self.frame_skip,step=self.frame_skip)
+        frame_idx_list = np.arange(0,self.n_frames*self.frame_skip*(self.spix**2),step=self.frame_skip)
         frame_idx_list = frame_idx_list+frame_idx
 
         frames = []
         flag = 0
-        for fr in range(self.n_frames):
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx_list[fr])
-            ret, frame = cap.read()
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx_list[self.idx])
+        ret, frame = cap.read()
 
-            if not ret:
-                raise RuntimeError("Failed to read frame.")
+        if not ret:
+            raise RuntimeError("Failed to read frame.")
   
+        self.idx += 1
 
-            # Croping
-            h, w, _ = frame.shape
-            if flag == 0:
-                x = random.randint(0, w - self.crop_size[0])
-                y = random.randint(0, h - self.crop_size[1])
-                flag = 1
 
-            process_frame = frame[y:y + self.crop_size[0], x:x + self.crop_size[1]]
-            # Convert frame to PyTorch tensor
+        # Croping
+        h, w, _ = frame.shape
+        if self.cropflag == 0:
+            self.x = random.randint(0, w - self.crop_size[0])
+            self.y = random.randint(0, h - self.crop_size[1])
+            self.cropflag = 1
 
-            # Monochrome or RGB
-            if self.color_mode == "gray":
-                process_frame = self.grayscale_transforms(process_frame)              
-                
-            frames.append(process_frame.to(self.device))
+        process_frame = frame[self.y:self.y + self.crop_size[0], self.x:self.x + self.crop_size[1]]
+        # Convert frame to PyTorch tensor
+
+        # Monochrome or RGB
+        if self.color_mode == "gray":
+            process_frame = self.grayscale_transforms(process_frame)              
+            
+        tensor_vid = process_frame
 
         cap.release()
 
-        tensor_vid = torch.squeeze(torch.stack(frames),dim=0)
         # Random ratation
         if self.randomRotation:
             rot_ang = random.choice([0, 90, 180, 270])

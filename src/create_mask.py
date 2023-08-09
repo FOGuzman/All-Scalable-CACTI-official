@@ -10,11 +10,10 @@ import scipy.io as scio
 import numpy as np
 
 
-
 parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 
 parser.add_argument('--spix', default=4, type=int)
-parser.add_argument('--nuclear_mask', default="./masks/mask512_8.mat", type=str)
+parser.add_argument('--nuclear_mask', default="./masks/xinyuan_mask_cat4.mat", type=str)
 parser.add_argument('--save_path', default="./masks/", type=str)
 parser.add_argument('--color_mode', default="gray", type=str)
 parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'], help='Device choice (cpu or cuda)')
@@ -27,7 +26,7 @@ mask = mask_data['mask'].astype(bool)
 
 final_shape = tuple(np.array(mask.shape)*np.array((args.spix,args.spix,args.spix**2)))
 
-out_mask = []
+
 
 stacked_kernel = []
 idxs = np.arange(0,args.spix**2).reshape(args.spix,args.spix)
@@ -44,7 +43,7 @@ for kx in range(args.spix**2):
 stacked_kernel = np.stack(stacked_kernel,axis=2).astype(bool)
 
 
-
+out_mask = []
 for mk in range(args.spix**2):
     for fm in range(mask.shape[2]):
         out_mask.append(np.kron(mask[:,:,fm],stacked_kernel[:,:,mk]))
@@ -53,7 +52,7 @@ out_mask = np.stack(out_mask,axis=2)
 
 file_name = os.path.join(args.save_path, f"mask_spix{args.spix}_nucmas({mask.shape[0]},{mask.shape[1]},{mask.shape[2]}).{args.FileFormat}")
 if args.FileFormat == "mat":
-    save_as_mat_np(out_mask, file_name,"mask")
+    scio.savemat(file_name, {"mask": out_mask,"order":idxs,"kernel":stacked_kernel})
 
 elif args.FileFormat == "torch":
     save_as_torch_np(out_mask, file_name)

@@ -24,8 +24,8 @@ args.device = torch.device(args.device)
 
 
 
-args.Phi, args.Phi_s = build_mask(args,args.batchSize)
-args.Phi_test, args.Phi_s_test = build_mask(args,1)
+args.Phi, args.Phi_s = build_mask(args,args.mask_path,args.batchSize)
+args.Phi_test, args.Phi_s_test = build_mask(args,args.mask_path,1)
 
 model = STFormer(color_channels=1,units=4,dim=64,frames=args.frames)
 model = model.to(args.device)

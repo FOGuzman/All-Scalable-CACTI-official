@@ -6,5 +6,7 @@ src/training_results/
 src/checkpoints/
 src/dataset_mat/
 
+src/masks/xinyuan_mask_cat4.mat
 src/masks/xinyuan_mask.mat
 src/masks/mask_spix4_nucmas(512,512,8).mat
+src/implicit_results/
