@@ -7,7 +7,7 @@ from functions.prepare_mask import build_mask
 from functions.utils import load_checkpoints
 from functions.utils import compute_ssim_psnr
 from functions.utils import dismantleMeas,assemblyMeas
-from functions.siren_utils import *
+#from functions.siren_utils import *
 from functions.model_siren import Siren
 from functions.utils import implay,plot
 from torch.utils.data import DataLoader
@@ -33,12 +33,14 @@ parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'
 parser.add_argument('--Epochs', default=100, type=int, help='Number of epochs')
 parser.add_argument('--checkpoint', default='./checkpoints/stformer_base.pth', type=str)
 parser.add_argument('--FrameStart',type=int, default=3,help='data agumentation')
-
-## Implicit representation arguments
 parser.add_argument('--frame_skip', default=3, type=int)
 parser.add_argument('--color_mode', default="gray", type=str)
 parser.add_argument('--randomFlip', default=False, action="store_true",help='data agumentation')
 parser.add_argument('--randomRotation', default=False, action="store_true",help='data agumentation')
+
+## Implicit representation arguments
+parser.add_argument('--siren_batch_size', default=100000, type=int)
+parser.add_argument('--siren_iterations', default=10000, type=int)
 
 args = parser.parse_args()
 args.device = torch.device(args.device)
@@ -131,8 +133,8 @@ gc.collect()
 
 
 ## IMplicit fit
-siren_model = Siren(in_features=3, out_features=1, hidden_features=256, 
-                  hidden_layers=3, outermost_linear=True)
+siren_model = Siren(in_features=3, out_features=1, hidden_features=512, 
+                  hidden_layers=4, outermost_linear=True)
 siren_model.cuda()
 lossfn = nn.MSELoss() 
 lossfn = lossfn.cuda()
@@ -142,10 +144,10 @@ scheduler = opt.lr_scheduler.StepLR(optim, step_size=500, gamma=0.9)
 
 
 
-batch_size = 80000
+batch_size = args.siren_batch_size
 
 
-for iter in range(2000):
+for iter in range(args.siren_iterations):
     batch_idx = torch.randperm(coords.shape[1])[0:batch_size]
     model_output, coords_out = siren_model(coords[:,batch_idx,:])
     loss = lossfn(gt[:,batch_idx,:],model_output)
