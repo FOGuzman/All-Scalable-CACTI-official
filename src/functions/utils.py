@@ -152,3 +152,24 @@ def assemblyMeas(demul_tensor,order,kernels,args):
 
     Full_TM = torch.cat((torch.cat((TM_tensor11,TM_tensor12),dim=1),torch.cat((TM_tensor21,TM_tensor22),dim=1)),dim=0)
     return Full_TM
+
+
+
+
+def generate_compressed_coordinates(batch_size,size1,frames):
+    # Generate random XY coordinates
+    xy_coords = torch.randint(0, size1, (1, batch_size, 2))
+    
+    # Expand XY coordinates to create the initial tensor
+    initial_tensor = xy_coords.unsqueeze(2).expand(1, batch_size, frames, 2)
+    
+    # Generate third coordinate
+    third_coords = torch.arange(0, frames).unsqueeze(0).unsqueeze(1).unsqueeze(3).expand(1, batch_size, frames, 1)
+    
+    # Concatenate XY and third coordinates
+    final_tensor = torch.cat((initial_tensor, third_coords), dim=-1)
+    
+    # Reshape to get the final tensor shape (1, batch_size*15, 3)
+    final_tensor = final_tensor.view(1, batch_size*frames, 3)
+    
+    return final_tensor
