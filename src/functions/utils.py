@@ -1,8 +1,20 @@
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
-
+import cv2
    
+
+def save_mp4(tensor,vid_name):
+    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    out = cv2.VideoWriter(vid_name, fourcc, 20.0, (tensor.shape[0],tensor.shape[1]))
+
+    for fr in range(tensor.shape[2]):
+        frame = (255*torch.unsqueeze(tensor[:,:,fr],-1).cpu().numpy()).astype(np.uint8)
+        cframe = np.concatenate((frame,frame,frame),axis=2)
+        out.write(cframe)
+    out.release()
+
+
 def load_checkpoints(model,pretrained_dict,strict=False):
     # pretrained_dict = torch.load(checkpoints)
     if strict is True:
@@ -152,6 +164,8 @@ def assemblyMeas(demul_tensor,order,kernels,args):
 
     Full_TM = torch.cat((torch.cat((TM_tensor11,TM_tensor12),dim=1),torch.cat((TM_tensor21,TM_tensor22),dim=1)),dim=0)
     return Full_TM
+
+
 
 
 
