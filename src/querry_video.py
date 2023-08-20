@@ -9,7 +9,7 @@ from functions.utils import compute_ssim_psnr
 from functions.utils import dismantleMeas,assemblyMeas
 #from functions.siren_utils import *
 from functions.model_siren import Siren
-from functions.utils import implay,plot
+from functions.utils import implay,plot, save_mp4
 from torch.utils.data import DataLoader
 from functions.videoLoaderSingle import VideoFramesDataset
 import torch.optim as opt
@@ -21,21 +21,21 @@ import os
 parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 
 ## Demultiplexing arguments
-parser.add_argument('--siren_video', default="./implicit_results/clip_5.pth", type=str)
+parser.add_argument('--siren_video', default="./implicit_results/clip_5_compress.pth", type=str)
 parser.add_argument('--mask_path', default="./masks/xinyuan_mask.mat", type=str)
 parser.add_argument('--fullmask_path', default="./masks/mask_spix4_nucmas(512,512,8).mat", type=str)
 parser.add_argument('--frames', default=8, type=int)
-parser.add_argument('--spix', default=4, type=int)
-parser.add_argument('--resolution', default=[2048,2048], type=eval, help='Dataset resolution')
+parser.add_argument('--spix', default=1, type=int)
+parser.add_argument('--resolution', default=[256,256], type=eval, help='Dataset resolution')
 parser.add_argument('--crop_size', default=[2048,2048], type=eval, help='Dataset resolution []')
-parser.add_argument('--siren_batch_size', default=150000, type=int)
+parser.add_argument('--siren_batch_size', default=15000, type=int)
 args = parser.parse_args()
 
 
 ## IMplicit fit
-siren_model = Siren(in_features=3, out_features=1, hidden_features=512, 
-                  hidden_layers=4, outermost_linear=True)
-siren_model.cuda()
+#siren_model = Siren(in_features=3, out_features=1, hidden_features=512, 
+#                  hidden_layers=4, outermost_linear=True)
+#siren_model.cuda()
 
 siren_model = torch.load(args.siren_video).cuda()
 # pr
@@ -65,4 +65,5 @@ with torch.no_grad():
 
 ten_out = torch.reshape(out_x2[:,:,0],(args.resolution[0],args.resolution[0],args.frames*args.spix**2))
 
+save_mp4(ten_out.cpu().numpy(),"clip_5_compress.mp4")
 implay(ten_out.cpu().numpy())# 0.00687
