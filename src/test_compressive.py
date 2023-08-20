@@ -24,15 +24,9 @@ parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 parser.add_argument('--test_data', default="./clips/clip 5.mp4", type=str)
 parser.add_argument('--mask_path', default="./masks/xinyuan_mask.mat", type=str)
 parser.add_argument('--fullmask_path', default="./masks/mask_spix4_nucmas(512,512,8).mat", type=str)
-<<<<<<< HEAD
 parser.add_argument('--frames', default=2, type=int)
 parser.add_argument('--spix', default=1, type=int)
 parser.add_argument('--resolution', default=[256,256], type=eval, help='Dataset resolution')
-=======
-parser.add_argument('--frames', default=8, type=int)
-parser.add_argument('--spix', default=4, type=int)
-parser.add_argument('--resolution', default=[2048,2048], type=eval, help='Dataset resolution')
->>>>>>> 996e152988d39351fca24d3d8c1c278f2c642ffd
 parser.add_argument('--crop_size', default=[2048,2048], type=eval, help='Dataset resolution []')
 parser.add_argument('--batchSize', default=1, type=int, help='Batch size for training')
 parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'], help='Device choice (cpu or cuda)')
@@ -45,13 +39,8 @@ parser.add_argument('--randomFlip', default=False, action="store_true",help='dat
 parser.add_argument('--randomRotation', default=False, action="store_true",help='data agumentation')
 
 ## Implicit representation arguments
-<<<<<<< HEAD
-parser.add_argument('--siren_batch_size', default=12000, type=int)
-parser.add_argument('--siren_iterations', default=1000, type=int)
-=======
 parser.add_argument('--siren_batch_size', default=500, type=int)
 parser.add_argument('--siren_iterations', default=10000, type=int)
->>>>>>> 996e152988d39351fca24d3d8c1c278f2c642ffd
 
 args = parser.parse_args()
 args.device = torch.device(args.device)
@@ -68,11 +57,7 @@ batch_size = args.siren_batch_size
 dataset = VideoFramesDataset(args.test_data,args.frames,args)
 dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 full_mask_data = scio.loadmat(args.fullmask_path)
-<<<<<<< HEAD
 full_mask = (torch.rand((args.resolution[0],args.resolution[1],total_frame))>0.5)*1
-=======
-full_mask = torch.bernoulli(torch.rand((args.resolution[0],args.resolution[1],total_frame)))
->>>>>>> 996e152988d39351fca24d3d8c1c278f2c642ffd
 full_mask = torch.unsqueeze(full_mask.permute(2,0,1),0)
 meas = torch.zeros(size=(1,1,args.resolution[0],args.resolution[1]))
 imsh = None
@@ -102,11 +87,7 @@ for iter in range(args.siren_iterations):
     coords = coords.float().cuda()
     coords[:,:,0] = (coords[:,:,0]/(args.resolution[0]-1)*2)-1
     coords[:,:,1] = (coords[:,:,1]/(args.resolution[0]-1)*2)-1
-<<<<<<< HEAD
     coords[:,:,2] = (coords[:,:,2]/((total_frame))*2)-1
-=======
-    coords[:,:,2] = (coords[:,:,2]/((total_frame)-1)*2)-1
->>>>>>> 996e152988d39351fca24d3d8c1c278f2c642ffd
 
     model_output, coords_out = siren_model(coords.cuda())
     compressed_filaments = torch.tensor_split(model_output,batch_size,dim=1)
@@ -114,11 +95,7 @@ for iter in range(args.siren_iterations):
     loss_batch = []
     for mm in range(batch_size):
         filament_mask = full_mask[:,:,idxXY[mm,0],idxXY[mm,1]].unsqueeze(-1).cuda().float()
-<<<<<<< HEAD
         syntethic_meas = torch.sum(filament_mask*compressed_filaments[mm])
-=======
-        syntethic_meas = torch.sum(filament_mask*compressed_filaments[0])
->>>>>>> 996e152988d39351fca24d3d8c1c278f2c642ffd
         real_meas_vector = meas[0,0,idxXY[mm,0],idxXY[mm,1]].cuda().float()
         loss_batch.append(lossfn(real_meas_vector,syntethic_meas))
     loss_batch = torch.mean(torch.stack(loss_batch))
@@ -139,11 +116,7 @@ gc.collect()
 coords_x2 = torch.unsqueeze(torch.nonzero(torch.ones((args.resolution[0],args.resolution[0],args.frames*args.spix**2))),0).float()
 coords_x2[:,:,0] = (coords_x2[:,:,0]/(args.resolution[0]-1)*2)-1
 coords_x2[:,:,1] = (coords_x2[:,:,1]/(args.resolution[0]-1)*2)-1
-<<<<<<< HEAD
 coords_x2[:,:,2] = (coords_x2[:,:,2]/(total_frame)*2)-1
-=======
-coords_x2[:,:,2] = (coords_x2[:,:,2]/(args.frames*args.spix**2-1)*2)-1
->>>>>>> 996e152988d39351fca24d3d8c1c278f2c642ffd
 
 coords_x2 = torch.tensor_split(coords_x2,coords_x2.shape[1]//batch_size,dim=1)
 out_x2 = None
