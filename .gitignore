@@ -10,3 +10,4 @@ src/masks/xinyuan_mask_cat4.mat
 src/masks/xinyuan_mask.mat
 src/masks/mask_spix4_nucmas(512,512,8).mat
 src/implicit_results/
+src/masks/mask_spix8_nucmas(256,256,8).mat
