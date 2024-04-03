@@ -117,10 +117,13 @@ def dismantleMeas(xin,order,args):
         (x,y) = np.where(order==kx)
         meas_batch[kx] = xin[:,:,int(x):args.resolution[0]:args.spix,int(y):args.resolution[1]:args.spix]
     meas_batch2 = []
-    meas_batch2.append(meas_batch[:,:,0:256,0:256])
-    meas_batch2.append(meas_batch[:,:,0:256,256:512])   
-    meas_batch2.append(meas_batch[:,:,256:512,0:256]) 
-    meas_batch2.append(meas_batch[:,:,256:512,256:512])
+    if meas_batch.shape[2] > 256:
+        meas_batch2.append(meas_batch[:,:,0:256,0:256])
+        meas_batch2.append(meas_batch[:,:,0:256,256:512])   
+        meas_batch2.append(meas_batch[:,:,256:512,0:256]) 
+        meas_batch2.append(meas_batch[:,:,256:512,256:512])
+    else:
+        meas_batch2 = meas_batch
     return meas_batch2 
 
 
@@ -132,6 +135,70 @@ def assemblyMeas(demul_tensor,order,kernels,args):
         for ts in range(args.frames):
                 span = np.kron(demul_tensor[0][kx][ts],kernels[:,:,kx])
                 TM_tensor11[:,:,cont] = torch.from_numpy(span)
+                cont += 1
+
+    TM_tensor12 = torch.zeros((args.resolution[0]//2,args.resolution[1]//2,args.spix**2*args.frames))
+    cont = 0
+    for kx in range(len(demul_tensor[1])):
+        (x,y) = np.where(order==kx)
+        for ts in range(args.frames):
+                span = np.kron(demul_tensor[1][kx][ts],kernels[:,:,kx])
+                TM_tensor12[:,:,cont] = torch.from_numpy(span)
+                cont += 1
+
+    TM_tensor21 = torch.zeros((args.resolution[0]//2,args.resolution[1]//2,args.spix**2*args.frames))
+    cont = 0
+    for kx in range(len(demul_tensor[2])):
+        (x,y) = np.where(order==kx)
+        for ts in range(args.frames):
+                span = np.kron(demul_tensor[2][kx][ts],kernels[:,:,kx])
+                TM_tensor21[:,:,cont] = torch.from_numpy(span)
+                cont += 1   
+
+    TM_tensor22 = torch.zeros((args.resolution[0]//2,args.resolution[1]//2,args.spix**2*args.frames))
+    cont = 0
+    for kx in range(len(demul_tensor[3])):
+        (x,y) = np.where(order==kx)
+        for ts in range(args.frames):
+                span = np.kron(demul_tensor[3][kx][ts],kernels[:,:,kx])
+                TM_tensor22[:,:,cont] = torch.from_numpy(span)
+                cont += 1                       
+
+
+    Full_TM = torch.cat((torch.cat((TM_tensor11,TM_tensor12),dim=1),torch.cat((TM_tensor21,TM_tensor22),dim=1)),dim=0)
+    return Full_TM
+
+
+
+
+
+
+def generate_compressed_coordinates(batch_size,size1,frames):
+    # Generate random XY coordinates
+    xy_coords = torch.randint(0, size1, (1, batch_size, 2))
+    
+    # Expand XY coordinates to create the initial tensor
+    initial_tensor = xy_coords.unsqueeze(2).expand(1, batch_size, frames, 2)
+    
+    # Generate third coordinate
+    third_coords = torch.arange(0, frames).unsqueeze(0).unsqueeze(1).unsqueeze(3).expand(1, batch_size, frames, 1)
+    
+    # Concatenate XY and third coordinates
+    final_tensor = torch.cat((initial_tensor, third_coords), dim=-1)
+    
+    # Reshape to get the final tensor shape (1, batch_size*15, 3)
+    final_tensor = final_tensor.view(1, batch_size*frames, 3)
+    
+    return final_tensor
+
+def assemblyMeas256(demul_tensor,order,kernels,args):
+    TM_tensor = torch.zeros((args.resolution[0]//args.spix,args.resolution[1]//args.spix,args.spix**2*args.frames))
+    cont = 0
+    for kx in range(len(demul_tensor)):
+        (x,y) = np.where(order==kx)
+        for ts in range(args.frames):
+                span = np.kron(demul_tensor[kx][ts],kernels[:,:,kx])
+                TM_tensor[:,:,cont] = torch.from_numpy(span)
                 cont += 1
 
     TM_tensor12 = torch.zeros((args.resolution[0]//2,args.resolution[1]//2,args.spix**2*args.frames))

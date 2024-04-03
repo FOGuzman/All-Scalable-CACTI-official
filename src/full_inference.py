@@ -4,9 +4,9 @@ import argparse
 import scipy.io as scio
 from functions.model import STFormer
 from functions.prepare_mask import build_mask
-from functions.utils import load_checkpoints
+from functions.utils import load_checkpoints,save_mp4
 from functions.utils import compute_ssim_psnr
-from functions.utils import dismantleMeas,assemblyMeas
+from functions.utils import dismantleMeas,assemblyMeas,assemblyMeas256
 #from functions.siren_utils import *
 from functions.model_siren import Siren
 from functions.utils import implay,plot
@@ -23,9 +23,9 @@ parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 ## Demultiplexing arguments
 parser.add_argument('--test_data', default="./clips/clip 5.mp4", type=str)
 parser.add_argument('--mask_path', default="./masks/xinyuan_mask.mat", type=str)
-parser.add_argument('--fullmask_path', default="./masks/mask_spix4_nucmas(512,512,8).mat", type=str)
+parser.add_argument('--fullmask_path', default="./masks/mask_spix8_nucmas(256,256,8).mat", type=str)
 parser.add_argument('--frames', default=8, type=int)
-parser.add_argument('--spix', default=4, type=int)
+parser.add_argument('--spix', default=8, type=int)
 parser.add_argument('--resolution', default=[2048,2048], type=eval, help='Dataset resolution')
 parser.add_argument('--crop_size', default=[2048,2048], type=eval, help='Dataset resolution []')
 parser.add_argument('--batchSize', default=1, type=int, help='Batch size for training')
@@ -33,7 +33,7 @@ parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'
 parser.add_argument('--Epochs', default=100, type=int, help='Number of epochs')
 parser.add_argument('--checkpoint', default='./checkpoints/stformer_base.pth', type=str)
 parser.add_argument('--FrameStart',type=int, default=3,help='data agumentation')
-parser.add_argument('--frame_skip', default=3, type=int)
+parser.add_argument('--frame_skip', default=1, type=int)
 parser.add_argument('--color_mode', default="gray", type=str)
 parser.add_argument('--randomFlip', default=False, action="store_true",help='data agumentation')
 parser.add_argument('--randomRotation', default=False, action="store_true",help='data agumentation')
@@ -58,6 +58,7 @@ full_mask = torch.unsqueeze(full_mask.permute(2,0,1),0)
 order = full_mask_data['order']
 meas = torch.zeros(size=(1,1,args.resolution[0],args.resolution[1]))
 imsh = None
+gt_vid =[]
 for k in tqdm(range(full_mask.shape[1]),
                                  desc ="Generating measurement... ",colour="red",
                                  total=full_mask.shape[1],
@@ -66,7 +67,7 @@ for k in tqdm(range(full_mask.shape[1]),
     iframe = next(iter(dataloader),k)
     modulated_frame = iframe*full_mask[:,k:k+1]
     meas = meas + modulated_frame
-
+    gt_vid.append(iframe)
     # stack_im = torch.cat((iframe[0,0,0:32,0:32],modulated_frame[0,0,0:32,0:32],meas[0,0,0:32,0:32]/5),dim=1)
     # if imsh is None:
     #     imsh = plt.imshow(stack_im, cmap='gray')
@@ -75,7 +76,8 @@ for k in tqdm(range(full_mask.shape[1]),
     # plt.show(block=False)
     # plt.pause(0.01)    
 
-
+gt_vid = torch.squeeze(torch.stack(gt_vid)).permute(1,2,0)
+save_mp4(gt_vid.cpu(),save_path+"gt_"+args.test_data[8:])
 ## Decompose measurement according to spix
 meas_batch = dismantleMeas(meas,order,args)
 
@@ -110,7 +112,7 @@ with torch.no_grad():
 
 kernels = torch.from_numpy(full_mask_data['kernel'])
                      
-Full_TM = assemblyMeas(demul_tensor,order,kernels,args)
+Full_TM = assemblyMeas256(demul_tensor,order,kernels,args)
 
 
 coords = torch.unsqueeze(torch.nonzero(Full_TM).float().cuda(),0)

@@ -9,7 +9,7 @@ from functions.utils import compute_ssim_psnr,generate_compressed_coordinates
 from functions.utils import dismantleMeas,assemblyMeas
 #from functions.siren_utils import *
 from functions.model_siren import Siren
-from functions.utils import implay,plot
+from functions.utils import implay,plot, save_mp4
 from torch.utils.data import DataLoader
 from functions.videoLoaderSingle import VideoFramesDataset
 import torch.optim as opt
@@ -23,8 +23,8 @@ parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 ## Demultiplexing arguments
 parser.add_argument('--test_data', default="./clips/clip 5.mp4", type=str)
 parser.add_argument('--mask_path', default="./masks/xinyuan_mask.mat", type=str)
-parser.add_argument('--fullmask_path', default="./masks/mask_spix4_nucmas(512,512,8).mat", type=str)
-parser.add_argument('--frames', default=2, type=int)
+parser.add_argument('--fullmask_path', default="./masks/mask256_16.mat", type=str)
+parser.add_argument('--frames', default=16, type=int)
 parser.add_argument('--spix', default=1, type=int)
 parser.add_argument('--resolution', default=[256,256], type=eval, help='Dataset resolution')
 parser.add_argument('--crop_size', default=[2048,2048], type=eval, help='Dataset resolution []')
@@ -33,14 +33,14 @@ parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'
 parser.add_argument('--Epochs', default=100, type=int, help='Number of epochs')
 parser.add_argument('--checkpoint', default='./checkpoints/stformer_base.pth', type=str)
 parser.add_argument('--FrameStart',type=int, default=3,help='data agumentation')
-parser.add_argument('--frame_skip', default=3, type=int)
+parser.add_argument('--frame_skip', default=8, type=int)
 parser.add_argument('--color_mode', default="gray", type=str)
 parser.add_argument('--randomFlip', default=False, action="store_true",help='data agumentation')
 parser.add_argument('--randomRotation', default=False, action="store_true",help='data agumentation')
 
 ## Implicit representation arguments
-parser.add_argument('--siren_batch_size', default=500, type=int)
-parser.add_argument('--siren_iterations', default=10000, type=int)
+parser.add_argument('--siren_batch_size', default=8000, type=int)
+parser.add_argument('--siren_iterations', default=100000, type=int)
 
 args = parser.parse_args()
 args.device = torch.device(args.device)
@@ -73,7 +73,7 @@ for k in tqdm(range(full_mask.shape[1]),
 
 
 ## IMplicit fit
-siren_model = Siren(in_features=3, out_features=1, hidden_features=512, 
+siren_model = Siren(in_features=3, out_features=1, hidden_features=256, 
                   hidden_layers=4, outermost_linear=True)
 siren_model.cuda()
 lossfn = nn.MSELoss() 
@@ -87,7 +87,7 @@ for iter in range(args.siren_iterations):
     coords = coords.float().cuda()
     coords[:,:,0] = (coords[:,:,0]/(args.resolution[0]-1)*2)-1
     coords[:,:,1] = (coords[:,:,1]/(args.resolution[0]-1)*2)-1
-    coords[:,:,2] = (coords[:,:,2]/((total_frame))*2)-1
+    coords[:,:,2] = (coords[:,:,2]/(total_frame)*2)-1
 
     model_output, coords_out = siren_model(coords.cuda())
     compressed_filaments = torch.tensor_split(model_output,batch_size,dim=1)
@@ -113,7 +113,7 @@ torch.cuda.empty_cache()
 gc.collect()
 
 # Full 
-coords_x2 = torch.unsqueeze(torch.nonzero(torch.ones((args.resolution[0],args.resolution[0],args.frames*args.spix**2))),0).float()
+coords_x2 = torch.unsqueeze(torch.nonzero(torch.ones((args.resolution[0],args.resolution[0],total_frame))),0).float()
 coords_x2[:,:,0] = (coords_x2[:,:,0]/(args.resolution[0]-1)*2)-1
 coords_x2[:,:,1] = (coords_x2[:,:,1]/(args.resolution[0]-1)*2)-1
 coords_x2[:,:,2] = (coords_x2[:,:,2]/(total_frame)*2)-1
@@ -131,8 +131,8 @@ with torch.no_grad():
         else:
             out_x2 = torch.cat((out_x2,pred_img.cpu()),dim=1)
 
-ten_out = torch.reshape(out_x2[:,:,0],(args.resolution[0],args.resolution[0],args.frames*args.spix**2))
+ten_out = torch.reshape(out_x2[:,:,0],(args.resolution[0],args.resolution[0],total_frame))
 
 
-
+save_mp4(ten_out.cpu(),"./implicit_results/clip_5_compress.mp4")
 implay(ten_out.cpu().numpy())# 0.00687

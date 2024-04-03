@@ -12,8 +12,8 @@ import numpy as np
 
 parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 
-parser.add_argument('--spix', default=4, type=int)
-parser.add_argument('--nuclear_mask', default="./masks/xinyuan_mask_cat4.mat", type=str)
+parser.add_argument('--spix', default=8, type=int)
+parser.add_argument('--nuclear_mask', default="./masks/xinyuan_mask.mat", type=str)
 parser.add_argument('--save_path', default="./masks/", type=str)
 parser.add_argument('--color_mode', default="gray", type=str)
 parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'], help='Device choice (cpu or cuda)')

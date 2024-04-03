@@ -21,16 +21,25 @@ import os
 parser = argparse.ArgumentParser(description='Settings, Data agumentation')
 
 ## Demultiplexing arguments
+parser.add_argument('--test_data', default="./clips/clip 5.mp4", type=str)
 parser.add_argument('--siren_video', default="./implicit_results/clip_5.pth", type=str)
 parser.add_argument('--mask_path', default="./masks/xinyuan_mask.mat", type=str)
 parser.add_argument('--fullmask_path', default="./masks/mask_spix4_nucmas(512,512,8).mat", type=str)
-parser.add_argument('--frames', default=8, type=int)
+parser.add_argument('--frames', default=128, type=int)
 parser.add_argument('--spix', default=1, type=int)
-parser.add_argument('--resolution', default=[256,256], type=eval, help='Dataset resolution')
+parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'], help='Device choice (cpu or cuda)')
+
+parser.add_argument('--resolution', default=[2048,2048], type=eval, help='Dataset resolution')
 parser.add_argument('--crop_size', default=[2048,2048], type=eval, help='Dataset resolution []')
 parser.add_argument('--siren_batch_size', default=15000, type=int)
-args = parser.parse_args()
+parser.add_argument('--FrameStart',type=int, default=3,help='data agumentation')
+parser.add_argument('--frame_skip', default=3, type=int)
+parser.add_argument('--color_mode', default="gray", type=str)
+parser.add_argument('--randomFlip', default=False, action="store_true",help='data agumentation')
+parser.add_argument('--randomRotation', default=False, action="store_true",help='data agumentation')
 
+args = parser.parse_args()
+args.device = torch.device(args.device)
 
 ## IMplicit fit
 #siren_model = Siren(in_features=3, out_features=1, hidden_features=512, 
@@ -65,5 +74,21 @@ with torch.no_grad():
 
 ten_out = torch.reshape(out_x2[:,:,0],(args.resolution[0],args.resolution[0],args.frames*args.spix**2))
 
-save_mp4(ten_out.cpu(),"clip_5.mp4")
-implay(ten_out.cpu().numpy())# 0.00687
+
+
+dataset = VideoFramesDataset(args.test_data,args.frames,args)
+dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
+full_mask_data = scio.loadmat(args.fullmask_path)
+full_mask = torch.from_numpy(full_mask_data['mask'])
+full_mask = torch.unsqueeze(full_mask.permute(2,0,1),0)
+order = full_mask_data['order']
+meas = torch.zeros(size=(1,1,args.resolution[0],args.resolution[1]))
+imsh = None
+for k in tqdm(range(128),
+                                 desc ="Generating measurement... ",colour="red",
+                                 total=128,
+                                 ascii=' 123456789═'):
+    # Get one batch from the dataloader
+    iframe = next(iter(dataloader),k)
+    modulated_frame = compute_ssim_psnr(iframe,ten_out[:,k:k+1])
+    meas = meas + modulated_frame
